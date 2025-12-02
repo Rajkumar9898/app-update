@@ -5,17 +5,17 @@ plugins {
 }
 
 android {
-    namespace = "com.example.kioskapp"
+    namespace = "com.reprolog.autoupdate"
     compileSdk {
         version = release(36)
     }
 
     defaultConfig {
-        applicationId = "com.reprolog.kioskapp"
+        applicationId = "com.reprolog.autoupdate"
         minSdk = 28
         targetSdk = 35
-        versionCode = 24
-        versionName = "1.24"
+        versionCode = 2
+        versionName = "1.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -38,6 +38,7 @@ android {
     }
     buildFeatures {
         compose = true
+        viewBinding = true
     }
 }
 
