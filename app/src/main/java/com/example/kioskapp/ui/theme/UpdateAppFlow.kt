@@ -15,7 +15,6 @@ fun UpdateAppFlow(updateManager: UpdateManager) {
 
     var showSnackbar by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    var msg by remember { mutableStateOf("TEMPLATE") }
 
     LaunchedEffect(showSnackbar) {
         if (showSnackbar) {
@@ -34,7 +33,6 @@ fun UpdateAppFlow(updateManager: UpdateManager) {
     LaunchedEffect(Unit) {
         updateManager.listenForInstallUpdates {
             showSnackbar = true
-            msg="Update ready to install"
         }
     }
 
@@ -47,7 +45,6 @@ fun UpdateAppFlow(updateManager: UpdateManager) {
 
     Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
         Column(modifier = Modifier.padding(padding).fillMaxSize()) {
-            Text(msg)
             MainScreen()
         }
     }
