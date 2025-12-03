@@ -16,10 +16,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appUpdateManager: AppUpdateManager
     private var showRestartSnack by mutableStateOf(false)
     private var isDownloadStarted by mutableStateOf(false)
-
     private var isUpdateFlowInProgress by mutableStateOf(false)
-    private var userDismissedUpdate = false
-
 
     private val listener = InstallStateUpdatedListener { state ->
         when (state.installStatus()) {
@@ -29,6 +26,9 @@ class MainActivity : ComponentActivity() {
             InstallStatus.DOWNLOADED -> {
                 isDownloadStarted = false
                 showRestartSnack = true
+            }
+            InstallStatus.CANCELED -> {
+                isUpdateFlowInProgress = false
             }
             else -> Unit
         }
@@ -64,10 +64,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun checkForUpdate() {
-//        if (isUpdateFlowInProgress) return
-        if (isUpdateFlowInProgress || userDismissedUpdate) return
-
-
+        if (isUpdateFlowInProgress) return
         appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
             val updateAvailable =
                 info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&

@@ -14,8 +14,8 @@ android {
         applicationId = "com.reprolog.kioskapp"
         minSdk = 28
         targetSdk = 35
-        versionCode = 24
-        versionName = "1.24"
+        versionCode = 29
+        versionName = "1.29"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
