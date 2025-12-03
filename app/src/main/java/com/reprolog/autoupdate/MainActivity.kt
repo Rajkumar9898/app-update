@@ -1,5 +1,7 @@
 package com.reprolog.autoupdate
 
+import android.app.ComponentCaller
+import android.content.Intent
 import android.content.IntentSender
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -39,6 +41,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             AppRoot(appUpdateManager, showRestartSnack)
             PeriodicUpdateChecker()
+        }
+    }
+
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?,
+        caller: ComponentCaller
+    ) {
+        super.onActivityResult(requestCode, resultCode, data, caller)
+        if (requestCode == 1234) {
+            hasShownUpdateDialog = false
         }
     }
 
