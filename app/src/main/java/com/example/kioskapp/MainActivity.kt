@@ -1,29 +1,114 @@
 package com.example.kioskapp
 
-import android.content.Intent
+import android.content.IntentSender
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import com.example.kioskapp.ui.theme.UpdateAppFlow
+import androidx.compose.runtime.*
+import com.google.android.play.core.appupdate.*
+import com.google.android.play.core.install.InstallStateUpdatedListener
+import com.google.android.play.core.install.model.*
+import com.reprolog.autoupdate.AppRoot
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var updateManager: UpdateManager
+    private lateinit var appUpdateManager: AppUpdateManager
+    private var showRestartSnack by mutableStateOf(false)
+    private var isDownloadStarted by mutableStateOf(false)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    private var isUpdateFlowInProgress by mutableStateOf(false)
+    private var userDismissedUpdate = false
 
-        // Initialize UpdateManager
-        updateManager = UpdateManager(this)
 
-        setContent {
-            // Pass updateManager to Compose
-            UpdateAppFlow(updateManager)
+    private val listener = InstallStateUpdatedListener { state ->
+        when (state.installStatus()) {
+            InstallStatus.DOWNLOADING -> {
+                isDownloadStarted = true
+            }
+            InstallStatus.DOWNLOADED -> {
+                isDownloadStarted = false
+                showRestartSnack = true
+            }
+            else -> Unit
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        updateManager.onActivityResultHandled(requestCode)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        appUpdateManager = AppUpdateManagerFactory.create(this)
+        appUpdateManager.registerListener(listener)
+
+        setContent {
+            AppRoot(appUpdateManager, showRestartSnack)
+            PeriodicUpdateChecker()
+        }
+    }
+
+    @Composable
+    fun PeriodicUpdateChecker() {
+        LaunchedEffect(Unit) {
+            while (true) {
+                checkForUpdate()
+                delay(1 * 60 * 1000L)
+            }
+        }
+
+        LaunchedEffect(isDownloadStarted) {
+            if (!isDownloadStarted) return@LaunchedEffect
+            while (isDownloadStarted) {
+                checkDownloaded()
+                delay(5000L)
+            }
+        }
+    }
+
+    private fun checkForUpdate() {
+//        if (isUpdateFlowInProgress) return
+        if (isUpdateFlowInProgress || userDismissedUpdate) return
+
+
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+            val updateAvailable =
+                info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                        info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+
+            if (updateAvailable) {
+                try {
+                    isUpdateFlowInProgress = true
+                    appUpdateManager.startUpdateFlow(
+                        info,
+                        this,
+                        AppUpdateOptions.newBuilder(AppUpdateType.FLEXIBLE).build()
+                    )
+                } catch (e: IntentSender.SendIntentException) {
+                    e.printStackTrace()
+                    isUpdateFlowInProgress = false
+                }
+            }
+
+            if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                showRestartSnack = true
+            }
+        }
+    }
+    override fun onResume() {
+        super.onResume()
+        isUpdateFlowInProgress = false
+    }
+
+
+    private fun checkDownloaded() {
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+            if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                isDownloadStarted = false
+                showRestartSnack = true
+            }
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        appUpdateManager.unregisterListener(listener)
     }
 }
