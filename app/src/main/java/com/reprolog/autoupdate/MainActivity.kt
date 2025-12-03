@@ -1,17 +1,10 @@
 package com.reprolog.autoupdate
 
 import android.content.IntentSender
-import android.content.pm.PackageInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.sp
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
@@ -30,30 +23,13 @@ class MainActivity : ComponentActivity() {
     }
 
     private var showRestartSnack by mutableStateOf(false)
-    private val snackHostState = SnackbarHostState()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         appUpdateManager = AppUpdateManagerFactory.create(this)
-        val packageInfo: PackageInfo? =
-            this.applicationContext.packageManager.getPackageInfo(
-                this.applicationContext.packageName,
-                0
-            )
 
         setContent {
-            Scaffold(snackbarHost = { SnackbarHost(snackHostState) }) {
-                it
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        "Version no: ${packageInfo?.versionName}(${packageInfo?.longVersionCode})",
-                        fontSize = 45.sp
-                    )
-                }
-            }
-            if (showRestartSnack) {
-                RestartSnack()
-            }
+            AppRoot(appUpdateManager, showRestartSnack)
             PeriodicUpdateChecker(appUpdateManager)
         }
     }
@@ -88,21 +64,6 @@ class MainActivity : ComponentActivity() {
 
             if (info.installStatus() == InstallStatus.DOWNLOADED) {
                 showRestartSnack = true
-            }
-        }
-    }
-
-
-    @Composable
-    fun RestartSnack() {
-        LaunchedEffect(Unit) {
-            val result = snackHostState.showSnackbar(
-                message = "Update downloaded. Restart?",
-                actionLabel = "Restart",
-                duration = SnackbarDuration.Indefinite
-            )
-            if (result == SnackbarResult.ActionPerformed) {
-                appUpdateManager.completeUpdate()
             }
         }
     }
