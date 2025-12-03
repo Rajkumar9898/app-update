@@ -14,6 +14,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var appUpdateManager: AppUpdateManager
     private var showRestartSnack by mutableStateOf(false)
     private var isDownloadStarted by mutableStateOf(false)
+    private var hasShownUpdateDialog  by mutableStateOf(false)
     private val listener = InstallStateUpdatedListener { state ->
         when (state.installStatus()) {
             InstallStatus.DOWNLOADING -> {
@@ -22,6 +23,9 @@ class MainActivity : ComponentActivity() {
             InstallStatus.DOWNLOADED -> {
                 isDownloadStarted = false
                 showRestartSnack = true
+            }
+            InstallStatus.CANCELED -> {
+                hasShownUpdateDialog = false
             }
             else -> Unit
         }
@@ -43,7 +47,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             while (true) {
                 checkForUpdate()
-                kotlinx.coroutines.delay(1 * 60 * 1000L) // 1 minute check evey minute from play store
+                kotlinx.coroutines.delay(1 * 60 * 1000L)
             }
         }
 
@@ -51,7 +55,7 @@ class MainActivity : ComponentActivity() {
             if (!isDownloadStarted) return@LaunchedEffect
             while (isDownloadStarted) {
                 checkDownloaded()
-                kotlinx.coroutines.delay(5000L) // 5 second check after download
+                kotlinx.coroutines.delay(5000L)
             }
         }
     }
@@ -62,7 +66,8 @@ class MainActivity : ComponentActivity() {
                 info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                         info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
 
-            if (updateAvailable) {
+            if (updateAvailable && !hasShownUpdateDialog) {
+                hasShownUpdateDialog = true
                 try {
                     appUpdateManager.startUpdateFlow(
                         info,
