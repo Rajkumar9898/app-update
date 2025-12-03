@@ -5,52 +5,64 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
-import com.google.android.play.core.appupdate.AppUpdateManager
-import com.google.android.play.core.appupdate.AppUpdateManagerFactory
-import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.appupdate.*
 import com.google.android.play.core.install.InstallStateUpdatedListener
-import com.google.android.play.core.install.model.AppUpdateType
-import com.google.android.play.core.install.model.InstallStatus
-import com.google.android.play.core.install.model.UpdateAvailability
+import com.google.android.play.core.install.model.*
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var appUpdateManager: AppUpdateManager
+    private var showRestartSnack by mutableStateOf(false)
+    private var isDownloadStarted by mutableStateOf(false)
     private val listener = InstallStateUpdatedListener { state ->
-        if (state.installStatus() == InstallStatus.DOWNLOADED) {
-            showRestartSnack = true
+        when (state.installStatus()) {
+            InstallStatus.DOWNLOADING -> {
+                isDownloadStarted = true
+            }
+            InstallStatus.DOWNLOADED -> {
+                isDownloadStarted = false
+                showRestartSnack = true
+            }
+            else -> Unit
         }
     }
-
-    private var showRestartSnack by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         appUpdateManager = AppUpdateManagerFactory.create(this)
+        appUpdateManager.registerListener(listener)
 
         setContent {
             AppRoot(appUpdateManager, showRestartSnack)
-            PeriodicUpdateChecker(appUpdateManager)
+            PeriodicUpdateChecker()
         }
     }
 
     @Composable
-    fun PeriodicUpdateChecker(appUpdateManager: AppUpdateManager) {
+    fun PeriodicUpdateChecker() {
         LaunchedEffect(Unit) {
             while (true) {
-                checkForUpdate(appUpdateManager)
-                kotlinx.coroutines.delay(15 * 60 * 1000L)
+                checkForUpdate()
+                kotlinx.coroutines.delay(1 * 60 * 1000L) // 1 minute check evey minute from play store
+            }
+        }
+
+        LaunchedEffect(isDownloadStarted) {
+            if (!isDownloadStarted) return@LaunchedEffect
+            while (isDownloadStarted) {
+                checkDownloaded()
+                kotlinx.coroutines.delay(5000L) // 5 second check after download
             }
         }
     }
 
-    private fun checkForUpdate(appUpdateManager: AppUpdateManager) {
+    private fun checkForUpdate() {
         appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
-            val available =
+            val updateAvailable =
                 info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                         info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
 
-            if (available) {
+            if (updateAvailable) {
                 try {
                     appUpdateManager.startUpdateFlow(
                         info,
@@ -63,6 +75,15 @@ class MainActivity : ComponentActivity() {
             }
 
             if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                showRestartSnack = true
+            }
+        }
+    }
+
+    private fun checkDownloaded() {
+        appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
+            if (info.installStatus() == InstallStatus.DOWNLOADED) {
+                isDownloadStarted = false
                 showRestartSnack = true
             }
         }
