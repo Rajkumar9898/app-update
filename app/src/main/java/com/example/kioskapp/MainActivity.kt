@@ -2,13 +2,14 @@ package com.example.kioskapp
 
 import android.content.IntentSender
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.google.android.play.core.appupdate.*
 import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.*
-import com.reprolog.autoupdate.AppRoot
+import com.example.kioskapp.ui.theme.AppRoot
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -22,9 +23,10 @@ class MainActivity : ComponentActivity() {
         when (state.installStatus()) {
             InstallStatus.DOWNLOADING -> {
                 isDownloadStarted = true
+                Toast.makeText(this, "Downloading", Toast.LENGTH_SHORT).show()
             }
             InstallStatus.DOWNLOADED -> {
-                isDownloadStarted = false
+//                isDownloadStarted = false
                 showRestartSnack = true
             }
             InstallStatus.CANCELED -> {

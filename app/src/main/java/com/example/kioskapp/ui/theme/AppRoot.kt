@@ -1,4 +1,4 @@
-package com.reprolog.autoupdate
+package com.example.kioskapp.ui.theme
 
 import android.content.pm.PackageInfo
 import androidx.compose.foundation.layout.Box
