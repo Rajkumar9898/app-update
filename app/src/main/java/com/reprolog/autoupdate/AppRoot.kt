@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun AppRoot(loading: Boolean) {
+fun AppRoot(downloading: Boolean, checking: Boolean) {
     val snackHostState = SnackbarHostState()
     val packageInfo: PackageInfo? =
         LocalContext.current.packageManager.getPackageInfo(
@@ -43,13 +43,13 @@ fun AppRoot(loading: Boolean) {
     }
 
 
-    if (loading) {
-        UpdateDownloadingScreen()
+    if (downloading || checking) {
+        UpdateDownloadingScreen(downloading)
     }
 }
 
 @Composable
-fun UpdateDownloadingScreen() {
+fun UpdateDownloadingScreen(downloading: Boolean) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -62,14 +62,15 @@ fun UpdateDownloadingScreen() {
             modifier = Modifier
                 .fillMaxWidth(0.8f)
                 .background(
-                    Color.White,
+                    if (downloading) Color.White else Color.Transparent,
                     RoundedCornerShape(12.dp)
                 )
                 .padding(24.dp),
         ) {
-
             CircularProgressIndicator(modifier = Modifier.size(60.dp), strokeWidth = 6.dp)
-            Text("Downloading Update")
+            if (downloading) {
+                Text("Downloading Update")
+            }
         }
     }
 }
@@ -78,5 +79,5 @@ fun UpdateDownloadingScreen() {
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun DownloadingBox() {
-    AppRoot(true)
+    AppRoot(true, true)
 }

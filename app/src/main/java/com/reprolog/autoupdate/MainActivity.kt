@@ -5,9 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.lifecycle.lifecycleScope
 import com.google.android.play.core.appupdate.*
 import com.google.android.play.core.install.InstallStateUpdatedListener
 import com.google.android.play.core.install.model.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -19,13 +22,16 @@ class MainActivity : ComponentActivity() {
             InstallStatus.DOWNLOADING -> {
                 isDownloadStarted = true
             }
+
             InstallStatus.DOWNLOADED -> {
                 isDownloadStarted = false
                 appUpdateManager.completeUpdate()
             }
+
             InstallStatus.CANCELED -> {
                 isUpdateFlowInProgress = false
             }
+
             else -> Unit
         }
     }
@@ -36,7 +42,7 @@ class MainActivity : ComponentActivity() {
         appUpdateManager.registerListener(listener)
 
         setContent {
-            AppRoot(isDownloadStarted || isUpdateFlowInProgress)
+            AppRoot(isDownloadStarted, isUpdateFlowInProgress)
             PeriodicUpdateChecker()
         }
     }
@@ -46,7 +52,7 @@ class MainActivity : ComponentActivity() {
         LaunchedEffect(Unit) {
             while (true) {
                 checkForUpdate()
-                kotlinx.coroutines.delay(1 * 60 * 1000L)
+                delay(1 * 60 * 1000L)
             }
         }
     }
@@ -75,7 +81,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        isUpdateFlowInProgress = false
+        lifecycleScope.launch {
+            delay(1000L)
+            isUpdateFlowInProgress = false
+        }
     }
 
     override fun onStop() {
