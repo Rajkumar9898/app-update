@@ -1,7 +1,5 @@
 package com.reprolog.autoupdate
 
-import android.app.ComponentCaller
-import android.content.Intent
 import android.content.IntentSender
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -14,9 +12,8 @@ import com.google.android.play.core.install.model.*
 class MainActivity : ComponentActivity() {
 
     private lateinit var appUpdateManager: AppUpdateManager
-    private var showRestartSnack by mutableStateOf(false)
     private var isDownloadStarted by mutableStateOf(false)
-    private var hasShownUpdateDialog  by mutableStateOf(false)
+    private var isUpdateFlowInProgress by mutableStateOf(false)
     private val listener = InstallStateUpdatedListener { state ->
         when (state.installStatus()) {
             InstallStatus.DOWNLOADING -> {
@@ -24,10 +21,10 @@ class MainActivity : ComponentActivity() {
             }
             InstallStatus.DOWNLOADED -> {
                 isDownloadStarted = false
-                showRestartSnack = true
+                appUpdateManager.completeUpdate()
             }
             InstallStatus.CANCELED -> {
-                hasShownUpdateDialog = false
+                isUpdateFlowInProgress = false
             }
             else -> Unit
         }
@@ -39,20 +36,8 @@ class MainActivity : ComponentActivity() {
         appUpdateManager.registerListener(listener)
 
         setContent {
-            AppRoot(appUpdateManager, showRestartSnack)
+            AppRoot(isDownloadStarted || isUpdateFlowInProgress)
             PeriodicUpdateChecker()
-        }
-    }
-
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?,
-        caller: ComponentCaller
-    ) {
-        super.onActivityResult(requestCode, resultCode, data, caller)
-        if (requestCode == 1234) {
-            hasShownUpdateDialog = false
         }
     }
 
@@ -64,25 +49,17 @@ class MainActivity : ComponentActivity() {
                 kotlinx.coroutines.delay(1 * 60 * 1000L)
             }
         }
-
-        LaunchedEffect(isDownloadStarted) {
-            if (!isDownloadStarted) return@LaunchedEffect
-            while (isDownloadStarted) {
-                checkDownloaded()
-                kotlinx.coroutines.delay(5000L)
-            }
-        }
     }
 
     private fun checkForUpdate() {
+        if (isUpdateFlowInProgress) return
         appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
             val updateAvailable =
                 info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                         info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
-
-            if (updateAvailable && !hasShownUpdateDialog) {
-                hasShownUpdateDialog = true
+            if (updateAvailable) {
                 try {
+                    isUpdateFlowInProgress = true
                     appUpdateManager.startUpdateFlow(
                         info,
                         this,
@@ -90,22 +67,15 @@ class MainActivity : ComponentActivity() {
                     )
                 } catch (e: IntentSender.SendIntentException) {
                     e.printStackTrace()
+                    isUpdateFlowInProgress = false
                 }
-            }
-
-            if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                showRestartSnack = true
             }
         }
     }
 
-    private fun checkDownloaded() {
-        appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
-            if (info.installStatus() == InstallStatus.DOWNLOADED) {
-                isDownloadStarted = false
-                showRestartSnack = true
-            }
-        }
+    override fun onResume() {
+        super.onResume()
+        isUpdateFlowInProgress = false
     }
 
     override fun onStop() {

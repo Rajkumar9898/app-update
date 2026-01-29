@@ -14,8 +14,8 @@ android {
         applicationId = "com.reprolog.autoupdate"
         minSdk = 28
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.2"
+        versionCode = 41
+        versionName = "1.41"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
